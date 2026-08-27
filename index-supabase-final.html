@@ -1,0 +1,1682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Aperture — turn memories into a gift</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=Sora:wght@400;500;600;700&family=Nanum+Pen+Script&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/canvas-confetti/1.9.2/confetti.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
+<style>
+/* ============================================================
+   TOKENS — six original theme identities. Default: midnight.
+   ============================================================ */
+:root{
+  --bg1:#0B1026; --bg2:#151B3B; --accent:#E8A972; --accent2:#7C6FF0;
+  --ink:#F3EFE6; --ink-soft:#B9B4D8; --card:rgba(255,255,255,0.06);
+  --line:rgba(255,255,255,0.12); --glow:rgba(232,169,114,0.45);
+  --serif:'Fraunces', Georgia, serif; --sans:'Sora', -apple-system, sans-serif; --hand:'Nanum Pen Script', cursive;
+  --r:20px;
+}
+[data-theme="rose"]{ --bg1:#FBEFE9; --bg2:#F6D8CE; --accent:#B4425A; --accent2:#E39B8C; --ink:#3A2029; --ink-soft:#8C5F63; --card:rgba(255,255,255,0.55); --line:rgba(58,32,41,0.12); --glow:rgba(180,66,90,0.3); }
+[data-theme="sunset"]{ --bg1:#2E1428; --bg2:#7A3A3E; --accent:#FFB37A; --accent2:#E85D75; --ink:#FFF3E6; --ink-soft:#F0C9C0; --card:rgba(255,255,255,0.08); --line:rgba(255,255,255,0.14); --glow:rgba(255,179,122,0.4); }
+[data-theme="minimal"]{ --bg1:#FAFAF8; --bg2:#F0EFEA; --accent:#1F1B16; --accent2:#8C7A5E; --ink:#1F1B16; --ink-soft:#6B6255; --card:rgba(255,255,255,0.7); --line:rgba(31,27,22,0.12); --glow:rgba(140,122,94,0.25); }
+[data-theme="forest"]{ --bg1:#0F2119; --bg2:#173327; --accent:#8FBF8A; --accent2:#D8C892; --ink:#EAF3E9; --ink-soft:#A8C4A6; --card:rgba(255,255,255,0.06); --line:rgba(255,255,255,0.13); --glow:rgba(143,191,138,0.35); }
+[data-theme="ocean"]{ --bg1:#08131E; --bg2:#0E2A3D; --accent:#4FD1C5; --accent2:#7EC8E3; --ink:#E7F6F6; --ink-soft:#9FC7CE; --card:rgba(255,255,255,0.06); --line:rgba(255,255,255,0.13); --glow:rgba(79,209,197,0.35); }
+
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0; font-family:var(--sans); color:var(--ink);
+  background:radial-gradient(ellipse at 20% -10%, var(--bg2), var(--bg1) 60%);
+  min-height:100vh; overflow-x:hidden; -webkit-tap-highlight-color:transparent;
+  transition:background 1s ease, color .6s ease;
+}
+h1,h2,h3{ font-family:var(--serif); font-weight:600; margin:0; color:var(--ink); }
+em{ font-style:italic; color:var(--accent); }
+p{ color:var(--ink-soft); line-height:1.7; margin:0; }
+a{ color:inherit; }
+button{ font-family:var(--sans); }
+::selection{ background:var(--accent); color:var(--bg1); }
+
+.wrap{ max-width:1180px; margin:0 auto; padding:0 24px; }
+.eyebrow{ font-family:var(--sans); letter-spacing:.24em; text-transform:uppercase; font-size:11px; font-weight:700; color:var(--accent); }
+
+.btn{ font-family:var(--sans); font-weight:600; font-size:14.5px; border:none; cursor:pointer; border-radius:100px; padding:14px 28px; color:var(--bg1); background:linear-gradient(135deg,var(--accent),var(--accent2)); box-shadow:0 14px 30px -12px var(--glow); transition:transform .2s ease; }
+.btn:active{ transform:scale(.96); }
+.btn.outline{ background:transparent; color:var(--ink); border:1.5px solid var(--line); box-shadow:none; }
+.btn.text{ background:none; box-shadow:none; color:var(--ink-soft); padding:10px 6px; }
+.btn.sm{ padding:9px 18px; font-size:13px; }
+.btn:disabled{ opacity:.4; pointer-events:none; }
+
+.glass{ background:var(--card); border:1px solid var(--line); border-radius:var(--r); backdrop-filter:blur(14px); }
+
+/* ---------- ambient orbs (original: not stars/hearts — soft drifting light) ---------- */
+.orbfield{ position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none; }
+.orb{ position:absolute; border-radius:50%; filter:blur(50px); opacity:.35; animation:orbDrift 20s ease-in-out infinite; }
+@keyframes orbDrift{ 0%,100%{ transform:translate(0,0) scale(1);} 50%{ transform:translate(6%,-10%) scale(1.2);} }
+
+/* ============================================================
+   NAV
+   ============================================================ */
+.topnav{ position:sticky; top:0; z-index:70; display:flex; align-items:center; justify-content:space-between; padding:18px 24px; }
+.brand{ display:flex; align-items:center; gap:10px; font-family:var(--serif); font-size:19px; font-weight:600; cursor:pointer; }
+.brand .mark{ width:26px; height:26px; border-radius:50%; border:2px solid var(--accent); position:relative; }
+.brand .mark::after{ content:''; position:absolute; inset:6px; border-radius:50%; background:var(--accent); }
+.navlinks{ display:flex; gap:8px; align-items:center; }
+.navlinks button{ background:none; border:none; color:var(--ink-soft); font-size:13.5px; cursor:pointer; padding:8px 14px; border-radius:100px; font-weight:600; }
+.navlinks button.active{ color:var(--ink); background:var(--card); border:1px solid var(--line); }
+
+/* ============================================================
+   HOME
+   ============================================================ */
+.hero{ padding:70px 0 40px; text-align:center; }
+.hero h1{ font-size:clamp(34px,6.5vw,64px); line-height:1.08; max-width:820px; margin:0 auto; }
+.hero .sub{ max-width:520px; margin:22px auto 0; font-size:16px; }
+.hero .ctas{ display:flex; gap:14px; justify-content:center; margin-top:32px; flex-wrap:wrap; }
+.feature-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:18px; margin:60px 0; }
+.feature-grid .glass{ padding:24px; }
+.feature-grid .num{ font-family:var(--serif); font-size:13px; color:var(--accent); margin-bottom:10px; }
+.feature-grid h3{ font-size:18px; margin-bottom:8px; }
+.feature-grid p{ font-size:13.5px; }
+.mock-frame{ width:min(300px,70vw); margin:50px auto 0; border-radius:36px; border:6px solid var(--card); box-shadow:0 40px 80px -30px rgba(0,0,0,.5); overflow:hidden; aspect-ratio:9/18.5; position:relative; background:linear-gradient(160deg,var(--bg2),var(--bg1)); }
+.mock-frame .mocktxt{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; text-align:center; gap:10px; }
+.mock-frame .mocktxt h3{ font-size:15px; }
+.mock-frame .aperture-mini{ width:70px; height:70px; }
+
+/* ============================================================
+   DASHBOARD
+   ============================================================ */
+.dash-head{ display:flex; justify-content:space-between; align-items:flex-end; margin:36px 0 26px; flex-wrap:wrap; gap:14px; }
+.gift-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:18px; padding-bottom:60px; }
+.gift-card{ border-radius:var(--r); overflow:hidden; position:relative; }
+.gift-card .cover{ height:150px; background:linear-gradient(135deg,var(--bg2),var(--bg1)); position:relative; overflow:hidden; }
+.gift-card .cover img{ width:100%; height:100%; object-fit:cover; }
+.gift-card .status{ position:absolute; top:10px; left:10px; font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:5px 10px; border-radius:100px; background:rgba(0,0,0,.5); color:#fff; }
+.gift-card .status.published{ background:var(--accent); color:var(--bg1); }
+.gift-card .body{ padding:16px; }
+.gift-card h3{ font-size:17px; margin-bottom:4px; }
+.gift-card .meta{ font-size:12px; color:var(--ink-soft); }
+.gift-card .actions{ display:flex; gap:6px; margin-top:14px; flex-wrap:wrap; }
+.gift-card .actions button{ flex:1; }
+.empty-state{ text-align:center; padding:80px 20px; }
+.empty-state .icon{ font-size:40px; margin-bottom:14px; opacity:.7; }
+
+/* ============================================================
+   WIZARD
+   ============================================================ */
+.wizard-shell{ display:grid; grid-template-columns:220px 1fr; gap:0; min-height:calc(100vh - 74px); }
+.rail{ padding:20px 10px; border-right:1px solid var(--line); }
+.rail-step{ display:flex; align-items:center; gap:10px; padding:12px 12px; border-radius:12px; cursor:pointer; font-size:13.5px; color:var(--ink-soft); font-weight:600; margin-bottom:2px; }
+.rail-step.active{ background:var(--card); color:var(--ink); }
+.rail-step .idx{ width:22px; height:22px; border-radius:50%; border:1.5px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:10.5px; flex-shrink:0; }
+.rail-step.active .idx{ border-color:var(--accent); color:var(--accent); }
+.rail-step.done .idx{ background:var(--accent); border-color:var(--accent); color:var(--bg1); }
+.wizard-main{ display:grid; grid-template-columns:1fr 340px; gap:0; }
+.wizard-panel{ padding:30px 34px 120px; max-width:640px; }
+.wizard-panel h2{ font-size:26px; margin-bottom:8px; }
+.wizard-panel .stephint{ font-size:13.5px; margin-bottom:26px; }
+.field{ margin-bottom:18px; }
+.field label{ display:block; font-size:12.5px; font-weight:700; color:var(--ink-soft); margin-bottom:7px; }
+.field input[type=text],.field input[type=url],.field textarea,.field select{
+  width:100%; padding:12px 14px; border-radius:12px; border:1.5px solid var(--line); background:rgba(255,255,255,0.04); color:var(--ink); font-family:var(--sans); font-size:14px; outline:none;
+}
+[data-theme="rose"] .field input,[data-theme="minimal"] .field input,[data-theme="rose"] .field textarea,[data-theme="minimal"] .field textarea,[data-theme="rose"] .field select,[data-theme="minimal"] .field select{ background:rgba(0,0,0,0.03); }
+.field input:focus,.field textarea:focus,.field select:focus{ border-color:var(--accent); }
+.field textarea{ resize:vertical; min-height:80px; }
+.row2{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.chiprow{ display:flex; flex-wrap:wrap; gap:8px; }
+.chip-opt{ padding:9px 16px; border-radius:100px; border:1.5px solid var(--line); font-size:13px; font-weight:600; cursor:pointer; color:var(--ink-soft); }
+.chip-opt.sel{ border-color:var(--accent); color:var(--accent); background:rgba(232,169,114,.1); }
+.theme-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:12px; }
+.theme-card{ border-radius:14px; overflow:hidden; border:2px solid transparent; cursor:pointer; }
+.theme-card.sel{ border-color:var(--accent); }
+.theme-card .sw{ height:56px; }
+.theme-card .lab{ padding:8px 10px; font-size:12.5px; font-weight:700; background:var(--card); }
+.bg-type-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:8px; margin-bottom:16px; }
+.slider-row{ display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+.slider-row label{ width:96px; font-size:12.5px; color:var(--ink-soft); font-weight:600; flex-shrink:0; }
+.slider-row input[type=range]{ flex:1; }
+.slider-row .val{ width:38px; text-align:right; font-size:12px; color:var(--ink-soft); }
+.upload-zone{ border:1.5px dashed var(--line); border-radius:16px; padding:26px; text-align:center; cursor:pointer; position:relative; margin-bottom:14px; }
+.upload-zone input{ position:absolute; inset:0; opacity:0; cursor:pointer; }
+.upload-zone .ic{ font-size:22px; margin-bottom:6px; }
+.upload-zone .sm{ font-size:12px; color:var(--ink-soft); margin-top:4px; }
+.bg-preview{ height:120px; border-radius:14px; margin-bottom:14px; background-size:cover; background-position:center; position:relative; overflow:hidden; }
+.bg-preview .ov{ position:absolute; inset:0; }
+
+.memory-list{ position:relative; }
+.memory-card{ display:flex; gap:14px; align-items:flex-start; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px; margin-bottom:14px; }
+.drag-handle{ cursor:grab; touch-action:none; user-select:none; color:var(--ink-soft); font-size:18px; padding:4px 2px; line-height:1; flex-shrink:0; }
+.drag-handle:active{ cursor:grabbing; }
+.memory-card .thumb{ width:84px; height:84px; border-radius:10px; object-fit:cover; flex-shrink:0; background:var(--bg2); }
+.memory-card .mfields{ flex:1; display:flex; flex-direction:column; gap:8px; }
+.memory-card .mtoolbar{ display:flex; flex-direction:column; gap:6px; }
+.icon-btn{ width:28px; height:28px; border-radius:8px; border:1px solid var(--line); background:none; color:var(--ink-soft); cursor:pointer; font-size:12px; display:flex; align-items:center; justify-content:center; }
+.add-tile{ border:1.5px dashed var(--line); border-radius:16px; padding:18px; text-align:center; cursor:pointer; position:relative; color:var(--ink-soft); font-weight:600; font-size:13.5px; }
+.add-tile input{ position:absolute; inset:0; opacity:0; cursor:pointer; }
+
+.reason-row{ display:flex; gap:8px; margin-bottom:10px; }
+.reason-row input{ flex:1; }
+.surprise-toggle{ display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border:1px solid var(--line); border-radius:14px; margin-bottom:14px; }
+.switch{ width:40px; height:22px; border-radius:100px; background:var(--line); position:relative; cursor:pointer; flex-shrink:0; }
+.switch.on{ background:var(--accent); }
+.switch::after{ content:''; position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%; background:#fff; transition:transform .2s ease; }
+.switch.on::after{ transform:translateX(18px); }
+.scratch-theme-row{ display:flex; gap:10px; }
+.scratch-sw{ width:40px; height:40px; border-radius:50%; cursor:pointer; border:2px solid transparent; }
+.scratch-sw.sel{ border-color:var(--accent); }
+
+.preview-side{ border-left:1px solid var(--line); padding:26px; display:flex; flex-direction:column; align-items:center; position:sticky; top:74px; align-self:flex-start; height:calc(100vh - 74px); }
+.phone-frame{ width:230px; height:466px; border-radius:34px; border:6px solid #111; background:#000; overflow:hidden; position:relative; box-shadow:0 30px 60px -20px rgba(0,0,0,.5); }
+.phone-frame .phone-screen{ position:relative; width:100%; height:100%; overflow:hidden; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:18px; text-align:center; background:radial-gradient(ellipse at 50% -10%, var(--bg2), var(--bg1) 70%); transition:background 1s ease; }
+.phone-frame .ps-bgimg{ position:absolute; inset:0; background-size:cover; background-position:center; }
+.phone-frame .ps-ov{ position:absolute; inset:0; }
+.phone-frame .ps-label{ position:absolute; top:10px; left:0; right:0; text-align:center; font-size:9px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); font-weight:700; opacity:.85; z-index:3; }
+.phone-frame .ps-eyebrow{ font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--accent); font-weight:700; margin-bottom:8px; position:relative; z-index:2; }
+.phone-frame .ps-headline{ font-family:var(--serif); font-size:16px; line-height:1.25; color:var(--ink); position:relative; z-index:2; }
+.phone-frame .ps-name{ font-family:var(--serif); font-style:italic; color:var(--accent); }
+.phone-frame .ps-sub{ font-size:10.5px; color:var(--ink-soft); margin-top:8px; line-height:1.5; position:relative; z-index:2; }
+.phone-frame .ps-img{ width:76px; height:76px; border-radius:50%; object-fit:cover; margin-bottom:12px; position:relative; z-index:2; box-shadow:0 10px 24px -10px var(--glow); }
+.phone-frame .ps-card{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; width:100%; position:relative; z-index:2; }
+.phone-frame .ps-empty{ font-size:11px; color:var(--ink-soft); position:relative; z-index:2; }
+.preview-side .cap{ margin-top:14px; font-size:12px; color:var(--ink-soft); text-align:center; }
+
+.wizard-footer{ position:fixed; bottom:0; left:0; right:0; background:var(--bg1); border-top:1px solid var(--line); padding:14px 24px; display:flex; justify-content:space-between; align-items:center; z-index:60; }
+.wizard-footer .save-note{ font-size:12px; color:var(--ink-soft); }
+
+.publish-box{ text-align:center; padding:20px; }
+.link-row{ display:flex; gap:8px; align-items:center; background:rgba(255,255,255,.04); border:1px solid var(--line); border-radius:100px; padding:8px 8px 8px 18px; margin:16px 0; max-width:440px; }
+.link-row span{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12.5px; }
+.share-row{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:14px; }
+
+@media (max-width:960px){
+  .wizard-shell{ grid-template-columns:1fr; }
+  .rail{ display:flex; overflow-x:auto; border-right:none; border-bottom:1px solid var(--line); gap:4px; padding:14px; }
+  .rail-step{ flex-shrink:0; }
+  .wizard-main{ grid-template-columns:1fr; }
+  .preview-side{ display:none; }
+  .wizard-panel{ padding:22px 18px 120px; }
+}
+@media (max-width:520px){ .row2{ grid-template-columns:1fr; } }
+
+/* ============================================================
+   RECIPIENT EXPERIENCE — original visual language
+   ============================================================ */
+#recipient{ position:relative; min-height:100vh; }
+.rscene{ min-height:100vh; width:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 22px 60px; position:relative; opacity:0; transform:translateY(18px); animation:rIn .8s cubic-bezier(.22,1,.36,1) forwards; }
+@keyframes rIn{ to{opacity:1; transform:translateY(0);} }
+.rscene.out{ animation:rOut .5s ease forwards; }
+@keyframes rOut{ to{opacity:0; transform:translateY(-14px) scale(.98);} }
+.bg-image-layer{ position:fixed; inset:0; z-index:-1; background-size:cover; background-position:center; }
+.bg-overlay-layer{ position:fixed; inset:0; z-index:-1; }
+
+/* signature element: the Aperture */
+.aperture{ position:relative; width:220px; height:220px; margin:20px 0; }
+.aperture svg{ width:100%; height:100%; }
+.aperture .blade{ transform-origin:110px 110px; transition:transform 1.3s cubic-bezier(.7,0,.3,1); }
+.aperture.open .blade{ transform:scale(2.6) rotate(50deg); opacity:0; }
+.aperture .core{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:15px; color:var(--ink-soft); text-align:center; padding:30px; opacity:1; transition:opacity .6s ease; }
+.aperture.open .core{ opacity:0; }
+.aperture .beam{ position:absolute; inset:0; border-radius:50%; background:radial-gradient(circle,var(--glow),transparent 70%); opacity:0; transition:opacity 1s ease; filter:blur(4px); }
+.aperture.open .beam{ opacity:1; }
+
+.r-eyebrow{ font-family:var(--sans); letter-spacing:.24em; text-transform:uppercase; font-size:11px; color:var(--accent); font-weight:700; margin-bottom:16px; }
+.r-headline{ font-family:var(--serif); font-size:clamp(28px,6vw,50px); text-align:center; line-height:1.12; max-width:640px; }
+.r-sub{ font-size:15px; text-align:center; max-width:460px; margin-top:16px; }
+.r-name{ font-family:var(--serif); font-style:italic; color:var(--accent); }
+
+/* pin */
+.pin-row{ display:flex; gap:14px; margin:28px 0 10px; }
+.pin-box{ width:50px; height:60px; border-radius:14px; background:var(--card); border:1.5px solid var(--line); display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:24px; }
+.pin-row.shake{ animation:shk .4s ease; }
+@keyframes shk{ 0%,100%{transform:translateX(0);} 25%{transform:translateX(-8px);} 75%{transform:translateX(8px);} }
+.pin-row.ok .pin-box{ border-color:var(--accent); box-shadow:0 0 0 4px var(--glow); }
+.keypad{ display:grid; grid-template-columns:repeat(3,60px); gap:10px; margin-top:14px; }
+.key{ width:60px; height:60px; border-radius:50%; background:var(--card); border:1px solid var(--line); font-family:var(--serif); font-size:20px; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+.key.fn{ font-size:12px; font-family:var(--sans); font-weight:700; color:var(--ink-soft); }
+.pin-msg{ font-size:12.5px; color:var(--accent); font-weight:700; min-height:18px; margin-top:6px; }
+
+/* memories - cinematic story style */
+.mem-card{ width:min(420px,90vw); }
+.mem-card .frame{ border-radius:24px; overflow:hidden; box-shadow:0 30px 60px -25px rgba(0,0,0,.5); background:linear-gradient(160deg,var(--bg2),var(--bg1)); }
+.mem-card img{ width:100%; height:340px; object-fit:contain; display:block; }
+.mem-card .info{ padding:20px 4px 0; }
+.mem-card .info .mdate{ font-size:11.5px; color:var(--accent); letter-spacing:.08em; text-transform:uppercase; font-weight:700; }
+.mem-card .info h3{ font-size:22px; margin:6px 0 8px; }
+.mem-card .info p{ font-size:14px; }
+.mem-nav{ display:flex; gap:20px; align-items:center; margin-top:20px; }
+.mem-nav .nc{ width:40px; height:40px; border-radius:50%; background:var(--card); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; cursor:pointer; }
+.mem-dots{ display:flex; gap:6px; }
+.mem-dots span{ width:5px; height:5px; border-radius:50%; background:var(--ink-soft); opacity:.4; }
+.mem-dots span.on{ opacity:1; background:var(--accent); }
+
+/* surprises */
+.reason-stack{ width:min(420px,90vw); min-height:220px; position:relative; }
+.reason-card{ background:var(--card); border:1px solid var(--line); border-radius:20px; padding:30px 26px; text-align:center; cursor:pointer; }
+.reason-card .lab{ font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--accent); font-weight:700; margin-bottom:12px; }
+.reason-card .txt{ font-family:var(--serif); font-size:20px; line-height:1.4; opacity:0; transition:opacity .4s ease; }
+.reason-card .txt.show{ opacity:1; }
+.reason-card .tap{ font-size:12.5px; color:var(--ink-soft); margin-top:16px; }
+.reason-progress{ display:flex; gap:6px; justify-content:center; margin-top:16px; }
+.reason-progress span{ width:24px; height:3px; border-radius:2px; background:var(--line); }
+.reason-progress span.on{ background:var(--accent); }
+
+.reveal-mystery{ width:min(320px,86vw); aspect-ratio:1; border-radius:24px; background:var(--card); border:1px solid var(--line); display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; text-align:center; padding:20px; }
+.reveal-mystery .q{ font-size:34px; margin-bottom:10px; }
+.reveal-mystery.open .q{ display:none; }
+.reveal-mystery .a{ display:none; font-family:var(--serif); font-size:19px; }
+.reveal-mystery.open .a{ display:block; }
+
+/* scratch */
+.scratch-wrap{ position:relative; width:290px; height:290px; border-radius:24px; overflow:hidden; box-shadow:0 30px 60px -25px rgba(0,0,0,.5); }
+.scratch-under{ position:absolute; inset:0; }
+.scratch-under img{ width:100%; height:100%; object-fit:cover; }
+.scratch-under .noimg{ width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,var(--bg2),var(--bg1)); font-size:40px; }
+.scratch-canvas{ position:absolute; inset:0; touch-action:none; display:block; }
+.scratch-hint{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; pointer-events:none; color:#3A2F1E; }
+
+/* reveal */
+.gift-reveal-img{ width:min(300px,80vw); border-radius:20px; box-shadow:0 30px 60px -25px rgba(0,0,0,.5); }
+
+/* letter */
+.paper2{ width:min(440px,90vw); background:var(--card); border:1px solid var(--line); border-radius:18px; padding:32px 28px; }
+.paper2 .ltitle{ font-family:var(--serif); font-style:italic; font-size:15px; color:var(--accent); margin-bottom:14px; }
+.letter-text{ font-family:var(--hand); font-size:26px; line-height:1.5; white-space:pre-wrap; min-height:120px; }
+.caret{ display:inline-block; width:2px; background:var(--accent); animation:blk 1s step-end infinite; margin-left:1px; }
+@keyframes blk{ 50%{opacity:0;} }
+
+/* music mini player */
+.player{ position:fixed; bottom:16px; left:16px; z-index:60; display:flex; align-items:center; gap:10px; padding:10px 16px 10px 10px; border-radius:100px; }
+.player .cover{ width:34px; height:34px; border-radius:50%; object-fit:cover; background:var(--bg2); flex-shrink:0; }
+.player .meta{ display:flex; flex-direction:column; }
+.player .ttl{ font-size:12px; font-weight:700; max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.player .bar{ width:80px; height:2px; background:var(--line); border-radius:2px; margin-top:4px; overflow:hidden; }
+.player .bar i{ display:block; height:100%; background:var(--accent); width:0%; }
+.player button{ border:none; background:none; color:var(--ink); font-size:15px; cursor:pointer; }
+
+.progress-dots{ position:fixed; top:16px; left:50%; transform:translateX(-50%); display:flex; gap:6px; z-index:60; }
+.progress-dots span{ width:5px; height:5px; border-radius:50%; background:var(--line); }
+.progress-dots span.done{ background:var(--accent); }
+.progress-dots span.cur{ width:14px; border-radius:3px; background:var(--ink); }
+
+.exit-btn{ position:fixed; top:14px; right:14px; z-index:70; background:var(--card); border:1px solid var(--line); border-radius:100px; padding:8px 16px; font-size:12px; color:var(--ink-soft); cursor:pointer; }
+
+.notfound{ text-align:center; padding:120px 20px; }
+</style>
+</head>
+<body>
+<div class="orbfield" id="orbfield"></div>
+<div id="app"></div>
+
+<script>
+/* ================================================================
+   UTIL
+   ================================================================ */
+const $=s=>document.querySelector(s);
+const el=(tag,cls,html)=>{const e=document.createElement(tag); if(cls)e.className=cls; if(html!==undefined)e.innerHTML=html; return e;};
+const uid=()=>Math.random().toString(36).slice(2,8)+Date.now().toString(36).slice(-4);
+const app=$('#app');
+
+const THEMES=[
+  {id:'midnight',label:'Midnight',sw:'linear-gradient(135deg,#0B1026,#E8A972)'},
+  {id:'rose',label:'Dreamy Rose',sw:'linear-gradient(135deg,#FBEFE9,#B4425A)'},
+  {id:'sunset',label:'Sunset',sw:'linear-gradient(135deg,#2E1428,#FFB37A)'},
+  {id:'minimal',label:'Minimal',sw:'linear-gradient(135deg,#FAFAF8,#1F1B16)'},
+  {id:'forest',label:'Forest',sw:'linear-gradient(135deg,#0F2119,#8FBF8A)'},
+  {id:'ocean',label:'Ocean',sw:'linear-gradient(135deg,#08131E,#4FD1C5)'},
+];
+const OCCASIONS=['Birthday','Anniversary',"Valentine's Day",'Proposal','Wedding','Friendship',"Mother's Day","Father's Day",'Graduation','Thank You','Sorry','Just Because','Custom'];
+
+function applyTheme(id){ document.body.dataset.theme = id || 'midnight'; seedOrbs(id); }
+function seedOrbs(theme){
+  const f=$('#orbfield'); f.innerHTML='';
+  const t = THEMES.find(t=>t.id===theme) || THEMES[0];
+  const colors = {midnight:['#E8A972','#7C6FF0'],rose:['#B4425A','#E39B8C'],sunset:['#FFB37A','#E85D75'],minimal:['#8C7A5E','#1F1B16'],forest:['#8FBF8A','#D8C892'],ocean:['#4FD1C5','#7EC8E3']}[t.id]||['#E8A972','#7C6FF0'];
+  for(let i=0;i<4;i++){
+    const o=el('div','orb','');
+    const size=220+Math.random()*220;
+    o.style.width=size+'px'; o.style.height=size+'px';
+    o.style.left=(Math.random()*90)+'vw'; o.style.top=(Math.random()*90)+'vh';
+    o.style.background=colors[i%2];
+    o.style.animationDelay=(-Math.random()*20)+'s';
+    o.style.animationDuration=(16+Math.random()*10)+'s';
+    f.appendChild(o);
+  }
+}
+
+function burst(opts={}){ if(window.confetti) confetti(Object.assign({particleCount:110,spread:85,origin:{y:.6}},opts)); }
+function beep(freq=520,dur=.09,type='sine',vol=.05){
+  try{
+    const ctx=beep._c||(beep._c=new (window.AudioContext||window.webkitAudioContext)());
+    const o=ctx.createOscillator(), g=ctx.createGain();
+    o.type=type; o.frequency.value=freq; g.gain.value=vol;
+    o.connect(g); g.connect(ctx.destination); o.start();
+    g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime+dur);
+    o.stop(ctx.currentTime+dur+.02);
+  }catch(e){}
+}
+function fileToDataUrl(file,maxDim,quality){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      if(!maxDim){ resolve(e.target.result); return; }
+      const img=new Image();
+      img.onload=()=>{
+        let {width,height}=img;
+        if(width>height && width>maxDim){ height*=maxDim/width; width=maxDim; }
+        else if(height>maxDim){ width*=maxDim/height; height=maxDim; }
+        const c=document.createElement('canvas'); c.width=width; c.height=height;
+        c.getContext('2d').drawImage(img,0,0,width,height);
+        resolve(c.toDataURL('image/jpeg',quality||0.75));
+      };
+      img.onerror=()=>resolve(e.target.result);
+      img.src=e.target.result;
+    };
+    reader.onerror=reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ================================================================
+   DATA MODEL + DEMO CONTENT
+   ================================================================ */
+function newGift(){
+  return {
+    id:uid(),
+    recipientName:'', creatorName:'', occasion:'Birthday', customOccasion:'',
+    openingMessage:'Something special is waiting for you...',
+    theme:'midnight',
+    background:{ type:'gradient', image:null, blur:0, brightness:100, overlayColor:'#000000', overlayOpacity:20 },
+    heroImage:null,
+    music:{ dataUrl:'', title:'', artist:'', cover:'' },
+    memories:[],
+    surprises:{ reasons:[], mystery:{question:'', answer:''} },
+    scratchCard:{ enabled:true, title:"There's a little surprise waiting for you...", instruction:'Scratch to reveal ✨', specialGiftImage:'', revealedMessage:'', theme:'gold' },
+    letter:{ title:'One more thing', body:'', signature:'' },
+    pin:{ enabled:false, code:'' },
+    status:'draft', createdAt:Date.now(), updatedAt:Date.now()
+  };
+}
+function demoGift(){
+  const g = newGift();
+  Object.assign(g, {
+    id:'demo', recipientName:'Meera', creatorName:'Dev', occasion:'Anniversary',
+    openingMessage:"I made you something. It's small, but it's ours.",
+    theme:'midnight',
+    background:{ type:'gradient', image:null, blur:0, brightness:100, overlayColor:'#000000', overlayOpacity:20 },
+    music:{ dataUrl:'', title:'Our song', artist:'', cover:'' },
+    memories:[
+      {id:uid(), image:'https://images.unsplash.com/photo-1529333166437-7750a6dd5a70?w=800&q=60', title:'Where it started', description:'A rooftop, bad coffee, and a conversation that ran three hours too long.', date:'June 2021', location:'Bandra rooftop'},
+      {id:uid(), image:'https://images.unsplash.com/photo-1522673607200-164d1b6ce486?w=800&q=60', title:'The trip we almost cancelled', description:'Rain the whole way there. Somehow it turned into the best weekend of the year.', date:'Dec 2022', location:'Munnar'},
+      {id:uid(), image:'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800&q=60', title:'Way too much cake', description:'We said we would split one slice. We did not.', date:'Aug 2024', location:'Home'}
+    ],
+    surprises:{ reasons:[
+      'You remember things I mention once, in passing, months ago.',
+      "You've never once made me feel small for asking a question twice.",
+      'You make ordinary Tuesdays feel like they matter.'
+    ], mystery:{ question:'Tap if you dare 👀', answer:"I would choose this exact life with you again, every single time." } },
+    scratchCard:{ enabled:true, title:"There's one more thing hiding here...", instruction:'Scratch to reveal ✨', specialGiftImage:'https://images.unsplash.com/photo-1518895949257-7621c3c786d7?w=600&q=60', revealedMessage:'Dinner, Saturday, the place you keep saying we should try. Already booked.', theme:'gold' },
+    letter:{ title:'For you', body:"I don't say this enough, so I built you an entire tiny website just to say it properly.\n\nThank you for the laughter, the late-night calls, and for putting up with me on my worst days.\n\nHere's to more ordinary Tuesdays.", signature:'Yours, always — Dev' },
+    pin:{ enabled:true, code:'1410' },
+    status:'draft'
+  });
+  return g;
+}
+
+/* ================================================================
+   STORAGE
+   This file has no server — it runs as a plain HTML file in a browser,
+   wherever it's opened. So there are two separate, deliberately different
+   mechanisms here:
+
+   1) LOCAL (localStorage) — powers "My Gifts", drafts and autosave.
+      This only lives on the device/browser that created the gift. It can
+      never throw and block the UI (everything is wrapped and falls back
+      to an in-memory store if localStorage is unavailable, e.g. private
+      browsing) — a save failing here should never stop the app working.
+
+   2) SHAREABLE LINK (URL-encoded) — powers the actual link + QR code you
+      send to someone else. The entire gift is compressed and packed into
+      the link itself (after the #, so it never touches a server), so
+      opening that link on ANY device — phone, laptop, anywhere — decodes
+      the gift right there in their browser. No account, no backend,
+      works cross-device by construction.
+   ================================================================ */
+let _memStore = {}; /* last-resort fallback if localStorage itself is blocked */
+function lsGet(key){
+  try{ const v = localStorage.getItem(key); return v!==null ? JSON.parse(v) : null; }
+  catch(e){ return _memStore[key] !== undefined ? _memStore[key] : null; }
+}
+function lsSet(key,val){
+  try{ localStorage.setItem(key, JSON.stringify(val)); }
+  catch(e){ _memStore[key] = val; }
+}
+function lsDel(key){
+  try{ localStorage.removeItem(key); }catch(e){}
+  delete _memStore[key];
+}
+
+async function saveGiftShared(gift){ lsSet('giftstudio:gift:'+gift.id, gift); }
+async function loadGiftShared(id){ return lsGet('giftstudio:gift:'+id); }
+async function deleteGiftShared(id){ lsDel('giftstudio:gift:'+id); }
+async function getMyGifts(){ return lsGet('giftstudio:myGifts') || []; }
+async function setMyGifts(list){ lsSet('giftstudio:myGifts', list); }
+async function upsertMyGiftsIndex(gift){
+  const list = await getMyGifts();
+  const idx = list.findIndex(x=>x.id===gift.id);
+  const entry = { id:gift.id, recipientName:gift.recipientName, occasion:gift.occasion, status:gift.status, updatedAt:gift.updatedAt, cover:gift.heroImage||(gift.memories[0]&&gift.memories[0].image)||'' };
+  if(idx>=0) list[idx]=entry; else list.unshift(entry);
+  await setMyGifts(list);
+}
+
+/* ---------- Supabase shareable link storage ----------
+   One row per published birthday gift.
+   URL contains only the short ID: ?g=Ab7K29xP
+--------------------------------------------------------------- */
+const SUPABASE_URL = 'https://axgibazbnimwkuluunln.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_AU0myWh4MbfH22kuAhLUFQ_zFo0oB83';
+const SUPABASE_TABLE = 'gifts';
+
+function supabaseHeaders(extra={}){
+  return {
+    'apikey': SUPABASE_PUBLISHABLE_KEY,
+    'Authorization': 'Bearer ' + SUPABASE_PUBLISHABLE_KEY,
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    ...extra
+  };
+}
+
+function makeGiftId(){
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+  const length = 10;
+  let out = '';
+
+  if(window.crypto && crypto.getRandomValues){
+    const a = new Uint32Array(length);
+    crypto.getRandomValues(a);
+    for(let i=0;i<length;i++) out += chars[a[i] % chars.length];
+  }else{
+    for(let i=0;i<length;i++) out += chars[Math.floor(Math.random()*chars.length)];
+  }
+
+  return out;
+}
+
+async function saveGiftRemote(gift){
+  const payload = JSON.parse(JSON.stringify(gift));
+  const id = payload.id;
+
+  const res = await fetch(
+    SUPABASE_URL + '/rest/v1/' + SUPABASE_TABLE,
+    {
+      method:'POST',
+      headers:supabaseHeaders({'Prefer':'return=minimal'}),
+      body:JSON.stringify({
+        id:id,
+        payload:payload,
+        created_at:new Date(payload.createdAt || Date.now()).toISOString()
+      })
+    }
+  );
+
+  if(!res.ok){
+    const msg = await res.text().catch(()=> '');
+    throw new Error('Supabase save failed: ' + res.status + ' ' + msg);
+  }
+
+  return id;
+}
+
+async function publishGiftRemote(gift){
+  const payload = JSON.parse(JSON.stringify(gift));
+
+  // IMPORTANT: always create a new ID for every publication.
+  // This avoids reusing an existing primary-key value.
+  let id = makeGiftId();
+
+  // In the extraordinarily unlikely event of a collision, try again.
+  for(let attempt=0; attempt<5; attempt++){
+    payload.id = id;
+
+    try{
+      await saveGiftRemote(payload);
+      return {
+        url: location.href.split('#')[0].split('?')[0] + '?g=' + encodeURIComponent(id),
+        bytes:id.length,
+        musicDropped:false,
+        mode:'remote'
+      };
+    }catch(e){
+      if(String(e && e.message || e).includes('23505') && attempt < 4){
+        id = makeGiftId();
+        continue;
+      }
+      throw e;
+    }
+  }
+
+  throw new Error('Could not create a unique gift ID. Please try again.');
+}
+
+async function loadGiftRemote(id){
+  try{
+    const res = await fetch(
+      SUPABASE_URL + '/rest/v1/' + SUPABASE_TABLE +
+      '?select=payload&id=eq.' + encodeURIComponent(id) + '&limit=1',
+      {headers:supabaseHeaders()}
+    );
+
+    if(!res.ok) return null;
+
+    const rows = await res.json();
+    return rows && rows[0] ? rows[0].payload : null;
+  }catch(e){
+    console.error(e);
+    return null;
+  }
+}
+
+async function deleteGiftRemote(id){
+  const res = await fetch(
+    SUPABASE_URL + '/rest/v1/' + SUPABASE_TABLE +
+    '?id=eq.' + encodeURIComponent(id),
+    {
+      method:'DELETE',
+      headers:supabaseHeaders({'Prefer':'return=minimal'})
+    }
+  );
+
+  if(!res.ok) throw new Error('Supabase delete failed: ' + res.status);
+}
+
+function decodeShareUrl(){
+  // Legacy compatibility: old self-contained #g= links can still be opened.
+  const m = location.hash.match(/#g=(.+)/);
+  if(!m) return null;
+
+  try{
+    const json = window.LZString
+      ? LZString.decompressFromEncodedURIComponent(m[1])
+      : decodeURIComponent(m[1]);
+
+    if(!json) return null;
+    return JSON.parse(json);
+  }catch(e){
+    return null;
+  }
+}
+
+/* ================================================================
+   APP STATE + ROUTER
+   ================================================================ */
+const state = { route:'home', draft:null, step:0, myGifts:[], recipient:{ gift:null, scene:'PIN', memIdx:0, reasonIdx:0, pinEntry:'', scratchDone:false } };
+const WIZ_STEPS = ['Details','Design','Memories','Music','Surprises','Letter','Preview','Publish'];
+
+function go(route, extra){
+  state.route = route;
+  if(extra) Object.assign(state, extra);
+  render();
+}
+
+function render(){
+  applyTheme(state.route==='wizard' || state.route==='recipient' ? (state.draft?.theme || state.recipient.gift?.theme) : 'midnight');
+  app.innerHTML='';
+  window.scrollTo(0,0);
+  if(state.route==='home') return renderHome();
+  if(state.route==='dashboard') return renderDashboard();
+  if(state.route==='wizard') return renderWizard();
+  if(state.route==='recipient') return renderRecipient();
+  if(state.route==='notfound') return renderNotFound();
+}
+
+function nav(){
+  const n = el('div','topnav');
+  const brand = el('div','brand','<span class="mark"></span> Aperture');
+  brand.onclick=()=>go('home');
+  const links = el('div','navlinks');
+  ['home','dashboard'].forEach(r=>{
+    const b=el('button', state.route===r?'active':'', r==='home'?'Home':'My Gifts');
+    b.onclick=()=>go(r);
+    links.appendChild(b);
+  });
+  const cta = el('button','btn sm','Create Your Gift');
+  cta.onclick = startNewGift;
+  links.appendChild(cta);
+  n.appendChild(brand); n.appendChild(links);
+  return n;
+}
+
+async function startNewGift(){
+  const g = newGift();
+  await saveGiftShared(g);
+  await upsertMyGiftsIndex(g);
+  go('wizard', {draft:g, step:0});
+}
+
+/* ================================================================
+   HOME
+   ================================================================ */
+function renderHome(){
+  app.innerHTML='';
+  app.appendChild(nav());
+  const wrap = el('div','wrap');
+  const hero = el('div','hero');
+  hero.appendChild(el('p','eyebrow','A private gift, not a webpage'));
+  hero.appendChild(el('h1','','Turn your memories into a gift <em>they'+String.fromCharCode(39)+'ll never forget</em>.'));
+  hero.appendChild(el('p','sub','Build a private, interactive surprise filled with your photos, your song, a few reasons you never got around to saying, and a letter — sent as one link, opened like a small ceremony.'));
+  const ctas = el('div','ctas');
+  const c1 = el('button','btn','Create Your Gift'); c1.onclick=startNewGift;
+  const c2 = el('button','btn outline','Try the demo'); c2.onclick=()=>{
+    const dg = demoGift();
+    go('recipient',{ recipient:{ gift:dg, scene: dg.pin.enabled?'PIN':'INTRO', memIdx:0, reasonIdx:0, pinEntry:'', scratchDone:false } });
+  };
+  ctas.appendChild(c1); ctas.appendChild(c2);
+  hero.appendChild(ctas);
+
+  const mock = el('div','mock-frame');
+  mock.innerHTML = `<div class="mocktxt">
+    <svg class="aperture-mini" viewBox="0 0 220 220">${apertureSvg(true)}</svg>
+    <h3>Someone made you something.</h3>
+  </div>`;
+  hero.appendChild(mock);
+  wrap.appendChild(hero);
+
+  const feats = el('div','feature-grid');
+  const items = [
+    ['01','Your photos, with their own story','Every memory gets its own title, description, date and place — not one caption for the whole gallery.'],
+    ['02','A song that starts at the right moment','Upload the track that means something. It begins the instant they open the gift, and never restarts.'],
+    ['03','A scratch card with a real photo underneath','Hide a picture of the actual surprise — a ticket, a gift, a place — under a scratch-to-reveal layer.'],
+    ['04','A letter that unfolds slowly','Typed out, not pasted in. Skippable, but better if they let it play.'],
+    ['05','Six visual moods','Midnight, Dreamy Rose, Sunset, Minimal, Forest, Ocean — pick the one that matches the two of you.'],
+    ['06','One private link','No account for them to make. Optional PIN if you want it to feel like a locked diary.'],
+  ];
+  items.forEach(([n,t,d])=>{
+    const c = el('div','glass');
+    c.innerHTML = `<div class="num">${n}</div><h3>${t}</h3><p>${d}</p>`;
+    feats.appendChild(c);
+  });
+  wrap.appendChild(feats);
+  app.appendChild(wrap);
+}
+
+function apertureSvg(mini){
+  let blades='';
+  const n=8, r1=30, r2=95;
+  for(let i=0;i<n;i++){
+    const ang = (i/n)*360;
+    blades += `<path class="blade" d="M110,110 L${110+r2*Math.cos(ang*Math.PI/180)},${110+r2*Math.sin(ang*Math.PI/180)} A${r2},${r2} 0 0,1 ${110+r2*Math.cos((ang+40)*Math.PI/180)},${110+r2*Math.sin((ang+40)*Math.PI/180)} Z" fill="var(--card)" stroke="var(--line)" stroke-width="1" transform="rotate(${ang} 110 110)"/>`;
+  }
+  return `<circle cx="110" cy="110" r="${r1}" fill="none" stroke="var(--accent)" stroke-width="1.5" opacity=".5"/>${blades}`;
+}
+
+/* ================================================================
+   DASHBOARD
+   ================================================================ */
+async function renderDashboard(){
+  app.innerHTML='';
+  app.appendChild(nav());
+  const wrap = el('div','wrap');
+  const head = el('div','dash-head');
+  head.innerHTML = `<div><p class="eyebrow">My Gifts</p><h2>Everything you've made</h2></div>`;
+  const newBtn = el('button','btn','+ New Gift'); newBtn.onclick=startNewGift;
+  head.appendChild(newBtn);
+  wrap.appendChild(head);
+
+  const list = await getMyGifts();
+  if(!list.length){
+    const es = el('div','empty-state');
+    es.innerHTML = `<div class="icon">✺</div><h3>Your story is waiting for its first gift.</h3><p style="margin-top:8px;">Nothing here yet — start one and it'll show up on this page.</p>`;
+    const b = el('button','btn','Create Your Gift'); b.style.marginTop='20px'; b.onclick=startNewGift;
+    es.appendChild(b);
+    wrap.appendChild(es);
+    app.appendChild(wrap);
+    return;
+  }
+  const grid = el('div','gift-grid');
+  list.forEach(entry=>{
+    const c = el('div','gift-card glass');
+    const cover = el('div','cover');
+    if(entry.cover) cover.appendChild(el('img',null,'')).src = entry.cover;
+    else cover.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:26px;">✺</div>`;
+    const status = el('span','status'+(entry.status==='published'?' published':''), entry.status);
+    cover.appendChild(status);
+    c.appendChild(cover);
+    const body = el('div','body');
+    body.innerHTML = `<h3>${entry.recipientName||'Untitled gift'}</h3><div class="meta">${entry.occasion||''} · updated ${new Date(entry.updatedAt).toLocaleDateString()}</div>`;
+    const actions = el('div','actions');
+    const editBtn = el('button','btn sm outline','Edit'); editBtn.onclick=async()=>{ const g=await loadGiftShared(entry.id); go('wizard',{draft:g,step:0}); };
+    const prevBtn = el('button','btn sm outline','Preview'); prevBtn.onclick=async()=>{ const g=await loadGiftShared(entry.id); go('recipient',{recipient:{gift:g,scene:(g&&g.pin&&g.pin.enabled)?'PIN':'INTRO',memIdx:0,reasonIdx:0,pinEntry:'',scratchDone:false}}); };
+    const delBtn = el('button','btn sm text','Delete'); delBtn.onclick=async()=>{
+      if(!confirm('Delete this gift? This cannot be undone.')) return;
+      await deleteGiftShared(entry.id);
+      const nl = (await getMyGifts()).filter(x=>x.id!==entry.id);
+      await setMyGifts(nl);
+      renderDashboard();
+    };
+    actions.appendChild(editBtn); actions.appendChild(prevBtn); actions.appendChild(delBtn);
+    body.appendChild(actions);
+    c.appendChild(body);
+    grid.appendChild(c);
+  });
+  wrap.appendChild(grid);
+  app.appendChild(wrap);
+}
+
+/* ================================================================
+   WIZARD
+   ================================================================ */
+let saveTimer=null;
+function scheduleAutosave(){
+  const note = $('#saveNote'); if(note) note.textContent='Saving...';
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async ()=>{
+    state.draft.updatedAt = Date.now();
+    await saveGiftShared(state.draft);
+    await upsertMyGiftsIndex(state.draft);
+    const n = $('#saveNote'); if(n) n.textContent='Saved just now';
+    refreshPhonePreview();
+  }, 700);
+}
+
+function renderWizard(){
+  app.innerHTML='';
+  app.appendChild(nav());
+  const shell = el('div','wizard-shell');
+  const rail = el('div','rail');
+  WIZ_STEPS.forEach((label,i)=>{
+    const r = el('div','rail-step'+(i===state.step?' active':'')+(i<state.step?' done':''));
+    r.innerHTML = `<span class="idx">${i<state.step?'✓':i+1}</span> ${label}`;
+    r.onclick = ()=>{ state.step=i; renderWizard(); window.scrollTo(0,0); };
+    rail.appendChild(r);
+  });
+  shell.appendChild(rail);
+
+  const main = el('div','wizard-main');
+  const panel = el('div','wizard-panel');
+  const builders = [stepDetails, stepDesign, stepMemories, stepMusic, stepSurprises, stepLetter, stepPreview, stepPublish];
+  builders[state.step](panel);
+  main.appendChild(panel);
+
+  const side = el('div','preview-side');
+  side.innerHTML = `<div class="phone-frame"><div class="phone-screen" id="phonePreviewScreen"></div></div><div class="cap">Live preview — updates as you edit</div>`;
+  main.appendChild(side);
+
+  shell.appendChild(main);
+  app.appendChild(shell);
+  refreshPhonePreview();
+
+  const footer = el('div','wizard-footer');
+  const back = el('button','btn outline sm', state.step===0?'← Back to gifts':'← Back');
+  back.onclick = ()=>{ if(state.step===0) go('dashboard'); else { state.step--; renderWizard(); window.scrollTo(0,0); } };
+  const noteWrap = el('div','save-note','Saved'); noteWrap.id='saveNote';
+  const next = el('button','btn sm', state.step===WIZ_STEPS.length-1?'Done':'Continue →');
+  next.onclick = ()=>{ if(state.step<WIZ_STEPS.length-1){ state.step++; renderWizard(); window.scrollTo(0,0); } else { go('dashboard'); } };
+  footer.appendChild(back); footer.appendChild(noteWrap); footer.appendChild(next);
+  app.appendChild(footer);
+}
+
+function refreshPhonePreview(){
+  const screen = $('#phonePreviewScreen');
+  if(!screen) return;
+  const g = state.draft;
+  screen.innerHTML = '';
+
+  if(g.background.type==='image' && g.background.image){
+    const bgi = el('div','ps-bgimg'); bgi.style.backgroundImage = `url(${g.background.image})`;
+    bgi.style.filter = `blur(${g.background.blur}px) brightness(${g.background.brightness}%)`;
+    screen.appendChild(bgi);
+    const ov = el('div','ps-ov'); ov.style.background = g.background.overlayColor; ov.style.opacity = g.background.overlayOpacity/100;
+    screen.appendChild(ov);
+  }
+
+  const stepLabels = ['Opening','Opening','Memories','Music','Surprises','Letter','Opening','Closing'];
+  screen.appendChild(el('div','ps-label', stepLabels[state.step] || 'Preview'));
+  const occasionLabel = g.occasion==='Custom' ? (g.customOccasion||'Custom') : g.occasion;
+
+  if(state.step===2){
+    if(g.memories.length){
+      const m = g.memories[0];
+      screen.appendChild(el('p','ps-eyebrow','Some memories deserve to be remembered'));
+      if(m.image){ const img=document.createElement('img'); img.src=m.image; img.style.cssText='width:100%;height:110px;object-fit:cover;border-radius:14px;margin-bottom:10px;position:relative;z-index:2;'; screen.appendChild(img); }
+      screen.appendChild(el('h3','ps-headline', m.title||'Untitled memory'));
+      screen.appendChild(el('p','ps-sub', (m.description||'').slice(0,90)));
+    } else {
+      screen.appendChild(el('p','ps-empty','Your story is waiting for its first memory.'));
+    }
+  } else if(state.step===3){
+    screen.appendChild(el('p','ps-eyebrow','Now playing'));
+    if(g.music.cover){ const img=document.createElement('img'); img.src=g.music.cover; img.className='ps-img'; screen.appendChild(img); }
+    screen.appendChild(el('h3','ps-headline', g.music.title || (g.music.dataUrl?'Untitled song':'No song yet')));
+    if(g.music.artist) screen.appendChild(el('p','ps-sub', g.music.artist));
+    if(!g.music.dataUrl) screen.appendChild(el('p','ps-empty','Every great memory deserves a soundtrack.'));
+  } else if(state.step===4){
+    const reasons = (g.surprises.reasons||[]).filter(r=>r&&r.trim());
+    screen.appendChild(el('p','ps-eyebrow','A few things I never said out loud'));
+    if(reasons.length){
+      screen.appendChild(el('div','ps-card', `<div style="font-family:var(--serif);font-size:14px;">${reasons[0].replace(/</g,'&lt;')}</div>`));
+    } else if(g.surprises.mystery && g.surprises.mystery.question){
+      screen.appendChild(el('div','ps-card', `<div style="font-size:20px;">${g.surprises.mystery.question.replace(/</g,'&lt;')}</div>`));
+    } else {
+      screen.appendChild(el('p','ps-empty','Add a reason or a mystery card to see it here.'));
+    }
+  } else if(state.step===5){
+    screen.appendChild(el('p','ps-eyebrow','A letter'));
+    screen.appendChild(el('h3','ps-headline', g.letter.title||'Untitled letter'));
+    screen.appendChild(el('p','ps-sub', (g.letter.body||'Nothing written yet.').slice(0,120)));
+  } else if(state.step===7){
+    screen.appendChild(el('p','ps-eyebrow','That\'s all for now'));
+    screen.appendChild(el('h2','ps-headline', g.recipientName||'Someone special'));
+    screen.appendChild(el('p','ps-sub', `Made with love by ${g.creatorName||'someone who cares'}`));
+  } else {
+    screen.appendChild(el('p','ps-eyebrow', occasionLabel||'A surprise'));
+    const ap = document.createElement('div'); ap.style.cssText='width:64px;height:64px;margin:6px 0 12px;position:relative;z-index:2;';
+    ap.innerHTML = `<svg viewBox="0 0 220 220" style="width:100%;height:100%;">${apertureSvg()}</svg>`;
+    screen.appendChild(ap);
+    screen.appendChild(el('h3','ps-headline', g.openingMessage||'Something special is waiting for you...'));
+    if(g.recipientName) screen.appendChild(el('p','ps-sub', `For <span class="ps-name">${g.recipientName}</span>`));
+  }
+}
+
+function field(labelText, value, onChange, opts={}){
+  const w = el('div','field');
+  if(labelText) w.appendChild(el('label','',labelText));
+  const input = opts.textarea ? document.createElement('textarea') : document.createElement('input');
+  if(!opts.textarea) input.type = opts.type||'text';
+  if(opts.rows) input.rows=opts.rows;
+  input.value = value||'';
+  input.placeholder = opts.placeholder||'';
+  input.oninput = e=>{ onChange(e.target.value); scheduleAutosave(); };
+  w.appendChild(input);
+  return w;
+}
+
+function stepDetails(panel){
+  panel.appendChild(el('h2','','Basic details'));
+  panel.appendChild(el('p','stephint','Who is this for, and what are we celebrating?'));
+  const row = el('div','row2');
+  row.appendChild(field('Recipient — what is their name?', state.draft.recipientName, v=>state.draft.recipientName=v));
+  row.appendChild(field('Your name', state.draft.creatorName, v=>state.draft.creatorName=v));
+  panel.appendChild(row);
+
+  panel.appendChild(el('label','','Occasion'));
+  const chips = el('div','chiprow'); chips.style.marginBottom='18px';
+  OCCASIONS.forEach(o=>{
+    const c = el('div','chip-opt'+(state.draft.occasion===o?' sel':''), o);
+    c.onclick = ()=>{ state.draft.occasion=o; chips.querySelectorAll('.chip-opt').forEach(x=>x.classList.remove('sel')); c.classList.add('sel'); scheduleAutosave(); };
+    chips.appendChild(c);
+  });
+  panel.appendChild(chips);
+  if(state.draft.occasion==='Custom'){
+    panel.appendChild(field('Custom occasion', state.draft.customOccasion, v=>state.draft.customOccasion=v));
+  }
+  panel.appendChild(field('Opening message — the first line they read', state.draft.openingMessage, v=>state.draft.openingMessage=v, {textarea:true, rows:3}));
+}
+
+function stepDesign(panel){
+  panel.appendChild(el('h2','','Design'));
+  panel.appendChild(el('p','stephint','Pick a mood, then fine-tune the background.'));
+
+  panel.appendChild(el('label','','Visual theme'));
+  const tg = el('div','theme-grid'); tg.style.marginBottom='24px';
+  THEMES.forEach(t=>{
+    const c = el('div','theme-card'+(state.draft.theme===t.id?' sel':''));
+    c.innerHTML = `<div class="sw" style="background:${t.sw}"></div><div class="lab">${t.label}</div>`;
+    c.onclick = ()=>{ state.draft.theme=t.id; applyTheme(t.id); renderWizard(); scheduleAutosave(); };
+    tg.appendChild(c);
+  });
+  panel.appendChild(tg);
+
+  panel.appendChild(el('label','','Background type'));
+  const bt = el('div','bg-type-grid');
+  [['gradient','Gradient'],['image','Photo'],['particles','Soft particles'],['stars','Starry']].forEach(([id,label])=>{
+    const c = el('div','chip-opt'+(state.draft.background.type===id?' sel':''), label);
+    c.onclick = ()=>{ state.draft.background.type=id; bt.querySelectorAll('.chip-opt').forEach(x=>x.classList.remove('sel')); c.classList.add('sel'); renderWizard(); scheduleAutosave(); };
+    bt.appendChild(c);
+  });
+  panel.appendChild(bt);
+
+  if(state.draft.background.type==='image'){
+    if(state.draft.background.image){
+      const prev = el('div','bg-preview');
+      prev.style.backgroundImage = `url(${state.draft.background.image})`;
+      prev.style.filter = `blur(${state.draft.background.blur}px) brightness(${state.draft.background.brightness}%)`;
+      const ov = el('div','ov'); ov.style.background=state.draft.background.overlayColor; ov.style.opacity=state.draft.background.overlayOpacity/100;
+      prev.appendChild(ov);
+      panel.appendChild(prev);
+    }
+    const uz = el('div','upload-zone');
+    uz.innerHTML = `<div class="ic">⤒</div><div>Upload a background photo</div><div class="sm">JPG, PNG or WEBP</div>`;
+    const inp = document.createElement('input'); inp.type='file'; inp.accept='image/jpeg,image/png,image/webp';
+    inp.onchange = async e=>{
+      const f = e.target.files[0]; if(!f) return;
+      if(!['image/jpeg','image/png','image/webp'].includes(f.type)){ alert('Please choose a JPG, PNG, or WEBP image.'); return; }
+      state.draft.background.image = await fileToDataUrl(f, 1000, 0.6);
+      renderWizard(); scheduleAutosave();
+    };
+    uz.appendChild(inp);
+    panel.appendChild(uz);
+
+    ['blur','brightness','overlayOpacity'].forEach(key=>{
+      const labels = {blur:'Blur',brightness:'Brightness',overlayOpacity:'Overlay'};
+      const max = key==='brightness'?150: key==='blur'?12:80;
+      const row = el('div','slider-row');
+      row.appendChild(el('label','',labels[key]));
+      const rng = document.createElement('input'); rng.type='range'; rng.min=0; rng.max=max; rng.value=state.draft.background[key];
+      const val = el('span','val', state.draft.background[key]);
+      rng.oninput = e=>{ state.draft.background[key]=Number(e.target.value); val.textContent=e.target.value; scheduleAutosave(); };
+      row.appendChild(rng); row.appendChild(val);
+      panel.appendChild(row);
+    });
+    const ovRow = el('div','field');
+    ovRow.appendChild(el('label','','Overlay color'));
+    const ovInput = document.createElement('input'); ovInput.type='color'; ovInput.value=state.draft.background.overlayColor;
+    ovInput.style.width='60px'; ovInput.style.height='38px'; ovInput.style.padding='2px'; ovInput.style.cursor='pointer';
+    ovInput.oninput = e=>{ state.draft.background.overlayColor=e.target.value; scheduleAutosave(); };
+    ovRow.appendChild(ovInput);
+    panel.appendChild(ovRow);
+  }
+
+  panel.appendChild(el('label','','Hero photo (shown right after opening)'));
+  if(state.draft.heroImage){
+    const prev = el('div','bg-preview'); prev.style.backgroundImage=`url(${state.draft.heroImage})`;
+    panel.appendChild(prev);
+  }
+  const heroUz = el('div','upload-zone');
+  heroUz.innerHTML = `<div class="ic">✺</div><div>${state.draft.heroImage?'Replace hero photo':'Upload hero photo'}</div>`;
+  const heroInp = document.createElement('input'); heroInp.type='file'; heroInp.accept='image/jpeg,image/png,image/webp';
+  heroInp.onchange = async e=>{
+    const f=e.target.files[0]; if(!f) return;
+    state.draft.heroImage = await fileToDataUrl(f, 800, 0.6);
+    renderWizard(); scheduleAutosave();
+  };
+  heroUz.appendChild(heroInp);
+  panel.appendChild(heroUz);
+}
+
+function stepMemories(panel){
+  panel.appendChild(el('h2','','Memories'));
+  panel.appendChild(el('p','stephint','Every photo gets its own title, description, date, and place.'));
+
+  if(!state.draft.memories.length){
+    const es = el('div','empty-state'); es.style.padding='40px 10px';
+    es.innerHTML = `<div class="icon">✺</div><h3 style="font-size:17px;">Your story is waiting for its first memory.</h3>`;
+    panel.appendChild(es);
+  }
+  const list = el('div','memory-list');
+  panel.appendChild(list);
+  state.draft.memories.forEach((m,i)=>{
+    const c = el('div','memory-card');
+    c.dataset.idx = i;
+    const handle = el('div','drag-handle','⠿');
+    handle.title = 'Drag to reorder';
+    c.appendChild(handle);
+    const img = el('img','thumb'); img.src=m.image;
+    c.appendChild(img);
+    const fields = el('div','mfields');
+    const t = document.createElement('input'); t.type='text'; t.placeholder='Title — "That first trip"'; t.value=m.title;
+    t.oninput=e=>{ m.title=e.target.value; scheduleAutosave(); };
+    const d = document.createElement('textarea'); d.rows=2; d.placeholder='Description'; d.value=m.description;
+    d.oninput=e=>{ m.description=e.target.value; scheduleAutosave(); };
+    const row = el('div','row2');
+    const dt = document.createElement('input'); dt.type='text'; dt.placeholder='Date (optional)'; dt.value=m.date;
+    dt.oninput=e=>{ m.date=e.target.value; scheduleAutosave(); };
+    const loc = document.createElement('input'); loc.type='text'; loc.placeholder='Location (optional)'; loc.value=m.location;
+    loc.oninput=e=>{ m.location=e.target.value; scheduleAutosave(); };
+    row.appendChild(dt); row.appendChild(loc);
+    fields.appendChild(t); fields.appendChild(d); fields.appendChild(row);
+    c.appendChild(fields);
+    const toolbar = el('div','mtoolbar');
+    const up = el('button','icon-btn','↑'); up.onclick=()=>{ if(i>0){ [state.draft.memories[i-1],state.draft.memories[i]]=[state.draft.memories[i],state.draft.memories[i-1]]; renderWizard(); scheduleAutosave(); } };
+    const down = el('button','icon-btn','↓'); down.onclick=()=>{ if(i<state.draft.memories.length-1){ [state.draft.memories[i+1],state.draft.memories[i]]=[state.draft.memories[i],state.draft.memories[i+1]]; renderWizard(); scheduleAutosave(); } };
+    const del = el('button','icon-btn','✕'); del.onclick=()=>{ state.draft.memories.splice(i,1); renderWizard(); scheduleAutosave(); };
+    toolbar.appendChild(up); toolbar.appendChild(down); toolbar.appendChild(del);
+    c.appendChild(toolbar);
+    list.appendChild(c);
+    wireDragHandle(handle, c, list, state.draft.memories);
+  });
+
+  if(state.draft.memories.length<12){
+    const add = el('div','add-tile','+ Add photos (multiple allowed)');
+    const inp = document.createElement('input'); inp.type='file'; inp.accept='image/jpeg,image/png,image/webp'; inp.multiple=true;
+    inp.onchange = async e=>{
+      for(const f of e.target.files){
+        if(state.draft.memories.length>=12) break;
+        const durl = await fileToDataUrl(f, 640, 0.55);
+        state.draft.memories.push({id:uid(), image:durl, title:'', description:'', date:'', location:''});
+      }
+      renderWizard(); scheduleAutosave();
+    };
+    add.appendChild(inp);
+    panel.appendChild(add);
+  }
+  panel.appendChild(el('p','stephint','Drag a card by its ⠿ handle to reorder, or use the arrows. Up to 12 photos, auto-optimized for fast loading.'));
+}
+
+/* Pointer-based drag reorder (works for mouse AND touch, unlike native HTML5 drag/drop) */
+function wireDragHandle(handle, card, list, arr){
+  let dragging=false, startY=0, cardH=0, placeholder=null;
+  handle.addEventListener('pointerdown', e=>{
+    e.preventDefault();
+    dragging = true;
+    startY = e.clientY;
+    cardH = card.offsetHeight;
+    const rect = card.getBoundingClientRect();
+    placeholder = document.createElement('div');
+    placeholder.style.height = cardH+'px';
+    placeholder.style.margin = getComputedStyle(card).margin;
+    card.parentNode.insertBefore(placeholder, card.nextSibling);
+    card.style.position='fixed';
+    card.style.top=rect.top+'px';
+    card.style.left=rect.left+'px';
+    card.style.width=rect.width+'px';
+    card.style.zIndex=1000;
+    card.style.pointerEvents='none';
+    card.style.boxShadow='0 20px 40px -15px rgba(0,0,0,.5)';
+    handle.setPointerCapture(e.pointerId);
+  });
+  handle.addEventListener('pointermove', e=>{
+    if(!dragging) return;
+    const dy = e.clientY - startY;
+    card.style.transform = `translateY(${dy}px)`;
+    const rect = placeholder.getBoundingClientRect();
+    const midY = rect.top + rect.height/2;
+    const pointerY = e.clientY;
+    let target = placeholder;
+    if(pointerY < midY && placeholder.previousElementSibling){ target = placeholder.previousElementSibling; list.insertBefore(placeholder, target); }
+    else if(pointerY > midY && placeholder.nextElementSibling){ target = placeholder.nextElementSibling; list.insertBefore(placeholder, target.nextElementSibling); }
+  });
+  function end(e){
+    if(!dragging) return;
+    dragging=false;
+    card.style.position=''; card.style.top=''; card.style.left=''; card.style.width=''; card.style.zIndex=''; card.style.pointerEvents=''; card.style.transform=''; card.style.boxShadow='';
+    list.insertBefore(card, placeholder);
+    placeholder.remove();
+    // recompute order from actual DOM order of .memory-card elements
+    const newOrder = [...list.querySelectorAll('.memory-card')].map(elm=>Number(elm.dataset.idx));
+    const reordered = newOrder.map(i=>arr[i]);
+    arr.length = 0; arr.push(...reordered);
+    renderWizard(); scheduleAutosave();
+  }
+  handle.addEventListener('pointerup', end);
+  handle.addEventListener('pointercancel', end);
+}
+
+function stepMusic(panel){
+  panel.appendChild(el('h2','','Music'));
+  panel.appendChild(el('p','stephint','The track that means something to the two of you.'));
+
+  if(!state.draft.music.dataUrl){
+    const es = el('div','empty-state'); es.style.padding='30px 10px';
+    es.innerHTML = `<div class="icon">♪</div><h3 style="font-size:16px;">Every great memory deserves a soundtrack.</h3>`;
+    panel.appendChild(es);
+  } else {
+    const p = document.createElement('audio'); p.controls=true; p.src=state.draft.music.dataUrl; p.style.width='100%'; p.style.marginBottom='16px';
+    panel.appendChild(p);
+    const rm = el('button','btn outline sm','Remove song'); rm.onclick=()=>{ state.draft.music={dataUrl:'',title:'',artist:'',cover:''}; renderWizard(); scheduleAutosave(); };
+    panel.appendChild(rm);
+    panel.appendChild(el('div','',' '));
+  }
+
+  const uz = el('div','upload-zone'); uz.style.marginTop='16px';
+  uz.innerHTML = `<div class="ic">♪</div><div>${state.draft.music.dataUrl?'Replace song':'Upload a song'}</div><div class="sm">MP3, WAV or M4A — under 6MB</div>`;
+  const inp = document.createElement('input'); inp.type='file'; inp.accept='audio/*';
+  inp.onchange = async e=>{
+    const f = e.target.files[0]; if(!f) return;
+    if(f.size > 6*1024*1024){ alert("We couldn't load this audio file — try one under 6MB, or a shorter clip."); return; }
+    state.draft.music.dataUrl = await fileToDataUrl(f);
+    if(!state.draft.music.title) state.draft.music.title = f.name.replace(/\.[^.]+$/,'');
+    renderWizard(); scheduleAutosave();
+  };
+  uz.appendChild(inp);
+  panel.appendChild(uz);
+
+  const row = el('div','row2');
+  row.appendChild(field('Song title', state.draft.music.title, v=>state.draft.music.title=v));
+  row.appendChild(field('Artist (optional)', state.draft.music.artist, v=>state.draft.music.artist=v));
+  panel.appendChild(row);
+
+  panel.appendChild(el('label','','Album artwork (optional)'));
+  if(state.draft.music.cover){
+    const img = el('img',null,''); img.src=state.draft.music.cover; img.style.width='70px'; img.style.height='70px'; img.style.borderRadius='12px'; img.style.objectFit='cover'; img.style.marginBottom='10px';
+    panel.appendChild(img);
+  }
+  const cvUz = el('div','upload-zone');
+  cvUz.innerHTML = `<div class="ic">▧</div><div>Upload artwork</div>`;
+  const cvInp = document.createElement('input'); cvInp.type='file'; cvInp.accept='image/*';
+  cvInp.onchange = async e=>{ const f=e.target.files[0]; if(!f) return; state.draft.music.cover = await fileToDataUrl(f,300,0.8); renderWizard(); scheduleAutosave(); };
+  cvUz.appendChild(cvInp);
+  panel.appendChild(cvUz);
+}
+
+function stepSurprises(panel){
+  panel.appendChild(el('h2','','Surprises'));
+  panel.appendChild(el('p','stephint','A few small, playful moments before the letter.'));
+
+  panel.appendChild(el('h3','','Reasons you\'re special'));
+  panel.appendChild(el('p','','One card at a time — add as many as you like.'));
+  const rl = el('div',''); rl.style.margin='14px 0';
+  function renderReasons(){
+    rl.innerHTML='';
+    state.draft.surprises.reasons.forEach((r,i)=>{
+      const row = el('div','reason-row');
+      const inp = document.createElement('input'); inp.type='text'; inp.value=r; inp.placeholder='One reason...';
+      inp.oninput = e=>{ state.draft.surprises.reasons[i]=e.target.value; scheduleAutosave(); };
+      const del = el('button','icon-btn','✕'); del.onclick=()=>{ state.draft.surprises.reasons.splice(i,1); renderReasons(); scheduleAutosave(); };
+      row.appendChild(inp); row.appendChild(del);
+      rl.appendChild(row);
+    });
+  }
+  renderReasons();
+  panel.appendChild(rl);
+  const addReason = el('button','add-link btn outline sm','+ Add a reason');
+  addReason.onclick = ()=>{ if(state.draft.surprises.reasons.length<12){ state.draft.surprises.reasons.push(''); renderReasons(); scheduleAutosave(); } };
+  panel.appendChild(addReason);
+
+  const h3b = el('h3','','Tap to reveal'); h3b.style.marginTop='30px';
+  panel.appendChild(h3b);
+  panel.appendChild(el('p','','A single mysterious card. What do they see when they tap it?'));
+  panel.appendChild(field('The prompt they see first', state.draft.surprises.mystery.question, v=>state.draft.surprises.mystery.question=v, {placeholder:'Tap if you dare 👀'}));
+  panel.appendChild(field('What\'s revealed', state.draft.surprises.mystery.answer, v=>state.draft.surprises.mystery.answer=v, {textarea:true, rows:2}));
+
+  const h3c = el('h3','','Scratch card — special gift'); h3c.style.marginTop='30px';
+  panel.appendChild(h3c);
+  const tgl = el('div','surprise-toggle');
+  tgl.innerHTML = `<span>Include a scratch card</span>`;
+  const sw = el('div','switch'+(state.draft.scratchCard.enabled?' on':''));
+  sw.onclick = ()=>{ state.draft.scratchCard.enabled=!state.draft.scratchCard.enabled; sw.classList.toggle('on'); scheduleAutosave(); };
+  tgl.appendChild(sw);
+  panel.appendChild(tgl);
+
+  panel.appendChild(field('Title', state.draft.scratchCard.title, v=>state.draft.scratchCard.title=v));
+  panel.appendChild(field('Instruction text on the card', state.draft.scratchCard.instruction, v=>state.draft.scratchCard.instruction=v));
+
+  panel.appendChild(el('label','','Special gift photo — hidden underneath the scratch layer'));
+  if(state.draft.scratchCard.specialGiftImage){
+    const img = el('img',null,''); img.src=state.draft.scratchCard.specialGiftImage; img.style.width='100px'; img.style.height='100px'; img.style.objectFit='cover'; img.style.borderRadius='12px'; img.style.marginBottom='10px';
+    panel.appendChild(img);
+  }
+  const sgUz = el('div','upload-zone');
+  sgUz.innerHTML = `<div class="ic">✺</div><div>${state.draft.scratchCard.specialGiftImage?'Replace photo':'Upload the special gift photo'}</div><div class="sm">A physical gift, a ticket, a place, a note — anything</div>`;
+  const sgInp = document.createElement('input'); sgInp.type='file'; sgInp.accept='image/jpeg,image/png,image/webp';
+  sgInp.onchange = async e=>{ const f=e.target.files[0]; if(!f) return; state.draft.scratchCard.specialGiftImage = await fileToDataUrl(f,700,0.55); renderWizard(); scheduleAutosave(); };
+  sgUz.appendChild(sgInp);
+  panel.appendChild(sgUz);
+
+  panel.appendChild(field('Message shown after it\'s revealed', state.draft.scratchCard.revealedMessage, v=>state.draft.scratchCard.revealedMessage=v, {textarea:true, rows:2}));
+
+  panel.appendChild(el('label','','Scratch layer style'));
+  const strow = el('div','scratch-theme-row');
+  [['silver','#C7CDD6'],['gold','#D8B98A'],['rose','#E8B7C4']].forEach(([id,color])=>{
+    const s = el('div','scratch-sw'+(state.draft.scratchCard.theme===id?' sel':'')); s.style.background=color;
+    s.onclick = ()=>{ state.draft.scratchCard.theme=id; strow.querySelectorAll('.scratch-sw').forEach(x=>x.classList.remove('sel')); s.classList.add('sel'); scheduleAutosave(); };
+    strow.appendChild(s);
+  });
+  panel.appendChild(strow);
+}
+
+function stepLetter(panel){
+  panel.appendChild(el('h2','','The letter'));
+  panel.appendChild(el('p','stephint','This is the part they\'ll probably read twice.'));
+  panel.appendChild(field('Letter title', state.draft.letter.title, v=>state.draft.letter.title=v));
+  panel.appendChild(field('Letter', state.draft.letter.body, v=>state.draft.letter.body=v, {textarea:true, rows:10}));
+  panel.appendChild(field('Signature', state.draft.letter.signature, v=>state.draft.letter.signature=v));
+}
+
+function stepPreview(panel){
+  panel.appendChild(el('h2','','Preview'));
+  panel.appendChild(el('p','stephint','See exactly what they\'ll see — nothing needs to be published first.'));
+  const btn = el('button','btn','Preview full experience ▸');
+  btn.onclick = ()=>{
+    go('recipient', {recipient:{ gift: JSON.parse(JSON.stringify(state.draft)), scene: state.draft.pin.enabled?'PIN':'INTRO', memIdx:0, reasonIdx:0, pinEntry:'', scratchDone:false }, _returnToWizard:true});
+  };
+  panel.appendChild(btn);
+  panel.appendChild(el('p','stephint','Use the ✕ in the top-right corner of the preview to come back here.'));
+}
+
+function stepPublish(panel){
+  panel.appendChild(el('h2','','Publish & share'));
+  panel.appendChild(el('p','stephint','Optionally lock it with a PIN, then generate your link.'));
+
+  const tgl = el('div','surprise-toggle');
+  tgl.innerHTML = `<span>Protect with a PIN</span>`;
+  const sw = el('div','switch'+(state.draft.pin.enabled?' on':''));
+  sw.onclick = ()=>{ state.draft.pin.enabled=!state.draft.pin.enabled; sw.classList.toggle('on'); renderWizard(); scheduleAutosave(); };
+  tgl.appendChild(sw);
+  panel.appendChild(tgl);
+  if(state.draft.pin.enabled){
+    panel.appendChild(field('4-digit code', state.draft.pin.code, v=>state.draft.pin.code=v.replace(/\D/g,'').slice(0,4)));
+  }
+
+  const box = el('div','publish-box glass');
+  box.innerHTML = `<h3>Ready when you are 🎁</h3><p style="margin-top:8px;">Publishing makes the link live so it can be opened from any phone or desktop browser.</p>`;
+  const pubBtn = el('button','btn','Publish this gift'); pubBtn.style.marginTop='18px';
+  const resultHolder = el('div',''); resultHolder.id='publishResult';
+  pubBtn.onclick = async ()=>{
+    pubBtn.disabled=true; pubBtn.textContent='Publishing...';
+    state.draft.status='published'; state.draft.updatedAt=Date.now();
+    resultHolder.innerHTML = '';
+    /* local save (for this device's My Gifts dashboard) is best-effort and can never block the share link below */
+    try{ await saveGiftShared(state.draft); await upsertMyGiftsIndex(state.draft); }catch(e){}
+
+    let built;
+    try{
+      built = await publishGiftRemote(state.draft);
+      state.draft.id = new URL(built.url).searchParams.get('g') || state.draft.id;
+    }catch(e){
+      console.error(e);
+      resultHolder.innerHTML = `<p class="stephint">Couldn't publish this gift. Please check your Supabase table/RLS settings and try again.</p>`;
+      pubBtn.disabled=false;
+      pubBtn.textContent='Publish this gift';
+      return;
+    }
+
+    const { url, bytes, musicDropped, mode } = built;
+    const kb = (bytes/1024).toFixed(1);
+    let sizeNote, showQr;
+    if(mode==='remote'){
+      sizeNote = `Link ready — it's short because the gift is stored, not stuffed into the URL. It'll open the same on any phone or browser.`;
+      showQr = true;
+    } else if(bytes < 2500){ sizeNote = `Link size: ${kb} KB — the QR code should scan easily. (Couldn't reach the link-hosting service, so this link carries the data itself — it'll still work, it's just longer.)`; showQr = true; }
+    else if(bytes < 9000){ sizeNote = `Link size: ${kb} KB — the QR will be a bit dense. (Couldn't reach the link-hosting service, so this is a self-contained fallback link.) The Copy Link button below always works.`; showQr = true; }
+    else { sizeNote = `Link size: ${kb} KB — too large for a reliable QR code. (Couldn't reach the link-hosting service, so this is a self-contained fallback link.) Use Copy Link or WhatsApp share instead, or remove a photo or two.`; showQr = false; }
+
+    resultHolder.innerHTML = `
+      <div class="link-row"><span>${url}</span><button class="btn sm" id="cpBtn">Copy</button></div>
+      <div id="qrHolder" style="display:flex;justify-content:center;min-height:${showQr?'190px':'0'};"></div>
+      <p class="stephint">${sizeNote}${musicDropped?' Your uploaded song was too large to travel inside the link, so it was left out of this shareable version — paste a direct audio URL on the Music step instead if you want music to play for the recipient too.':''}</p>
+      <div class="share-row"></div>`;
+
+    if(showQr){
+      try{ new QRCode(resultHolder.querySelector('#qrHolder'), {text:url, width:180, height:180}); }
+      catch(e){ resultHolder.querySelector('#qrHolder').innerHTML = '<p class="stephint">QR generation failed — Copy Link still works below.</p>'; }
+    }
+    resultHolder.querySelector('#cpBtn').onclick = ()=>{
+      navigator.clipboard?.writeText(url).then(()=>{ resultHolder.querySelector('#cpBtn').textContent='Copied'; setTimeout(()=>{ const b=resultHolder.querySelector('#cpBtn'); if(b) b.textContent='Copy'; },1500); }).catch(()=>{});
+    };
+    const shareRow = resultHolder.querySelector('.share-row');
+    const wa = el('a','btn sm outline','Share on WhatsApp'); wa.href = 'https://wa.me/?text='+encodeURIComponent('Someone made something special for you: '+url); wa.target='_blank';
+    shareRow.appendChild(wa);
+    const prev = el('button','btn sm outline','Preview'); prev.onclick=()=>go('recipient',{recipient:{gift:JSON.parse(JSON.stringify(state.draft)),scene:state.draft.pin.enabled?'PIN':'INTRO',memIdx:0,reasonIdx:0,pinEntry:'',scratchDone:false},_returnToWizard:true});
+    shareRow.appendChild(prev);
+
+    pubBtn.disabled=false; pubBtn.textContent='Publish this gift';
+  };
+  box.appendChild(pubBtn);
+  box.appendChild(resultHolder);
+  panel.appendChild(box);
+}
+
+/* ================================================================
+   RECIPIENT EXPERIENCE
+   ================================================================ */
+const R_ORDER = ['PIN','INTRO','HERO','MEMORIES','SURPRISES','SCRATCH','LETTER','FINAL'];
+let rAudio = null;
+
+function rGo(scene){
+  const cur = $('#recipient .rscene');
+  if(cur){ cur.classList.add('out'); setTimeout(()=>{ state.recipient.scene=scene; renderRecipient(); }, 420); }
+  else { state.recipient.scene=scene; renderRecipient(); }
+}
+
+function renderRecipient(){
+  app.innerHTML='';
+  window.scrollTo(0,0);
+  const g = state.recipient.gift;
+  applyTheme(g.theme);
+  const root = el('div',''); root.id='recipient';
+
+  if(g.background.type==='image' && g.background.image){
+    const bgi = el('div','bg-image-layer'); bgi.style.backgroundImage=`url(${g.background.image})`;
+    bgi.style.filter = `blur(${g.background.blur}px) brightness(${g.background.brightness}%)`;
+    root.appendChild(bgi);
+    const ov = el('div','bg-overlay-layer'); ov.style.background=g.background.overlayColor; ov.style.opacity=g.background.overlayOpacity/100;
+    root.appendChild(ov);
+  }
+
+  const exit = el('button','exit-btn','✕ Exit preview');
+  exit.onclick = ()=>{ if(state._returnToWizard){ go('wizard'); } else { go('home'); } };
+  root.appendChild(exit);
+
+  root.appendChild(rProgress());
+
+  const scene = el('div','rscene');
+  root.appendChild(scene);
+  app.appendChild(root); /* attach BEFORE building scene content — the scratch canvas and any layout math need real, on-page dimensions to measure */
+
+  const skip = state.recipient.scene==='PIN' && !g.pin.enabled;
+  const effectiveScene = skip ? 'INTRO' : state.recipient.scene;
+  if(skip) state.recipient.scene='INTRO';
+
+  switch(effectiveScene){
+    case 'PIN': buildRPin(scene,g); break;
+    case 'INTRO': buildRIntro(scene,g); break;
+    case 'HERO': buildRHero(scene,g); break;
+    case 'MEMORIES': buildRMemories(scene,g); break;
+    case 'SURPRISES': buildRSurprises(scene,g); break;
+    case 'SCRATCH': buildRScratch(scene,g); break;
+    case 'LETTER': buildRLetter(scene,g); break;
+    case 'FINAL': buildRFinal(scene,g); break;
+  }
+  if(['HERO','MEMORIES','SURPRISES','SCRATCH','LETTER','FINAL'].includes(effectiveScene) && g.music.dataUrl){
+    app.appendChild(buildRPlayer(g));
+  }
+}
+
+function rProgress(){
+  const wrap = el('div','progress-dots');
+  const seq = state.recipient.gift.pin.enabled ? R_ORDER : R_ORDER.filter(s=>s!=='PIN');
+  if(!seq.includes(state.recipient.scene)) return wrap;
+  seq.forEach(s=>{
+    const d = el('span','');
+    const curI = seq.indexOf(state.recipient.scene), i = seq.indexOf(s);
+    if(i<curI) d.classList.add('done'); else if(i===curI) d.classList.add('cur');
+    wrap.appendChild(d);
+  });
+  return wrap;
+}
+
+function buildRPin(scene,g){
+  scene.appendChild(el('p','r-eyebrow','Someone made something special for you'));
+  scene.appendChild(el('h1','r-headline','Enter your secret code'));
+  const row = el('div','pin-row');
+  for(let i=0;i<4;i++) row.appendChild(el('div','pin-box',''));
+  scene.appendChild(row);
+  const msg = el('div','pin-msg','');
+  scene.appendChild(msg);
+  function refresh(){ [...row.children].forEach((b,i)=> b.textContent = state.recipient.pinEntry[i] ? '•' : ''); }
+  function press(v){
+    if(v==='del'){ state.recipient.pinEntry = state.recipient.pinEntry.slice(0,-1); refresh(); return; }
+    if(state.recipient.pinEntry.length>=4) return;
+    state.recipient.pinEntry += v; refresh(); beep(440,.05,'square',.03);
+    if(state.recipient.pinEntry.length===4){
+      setTimeout(()=>{
+        if(state.recipient.pinEntry===g.pin.code){
+          row.classList.add('ok'); burst({particleCount:120}); setTimeout(()=>rGo('INTRO'),700);
+        } else {
+          row.classList.add('shake'); msg.textContent='Not quite — try again';
+          setTimeout(()=>{ row.classList.remove('shake'); state.recipient.pinEntry=''; refresh(); },450);
+        }
+      },150);
+    }
+  }
+  const kp = el('div','keypad');
+  ['1','2','3','4','5','6','7','8','9','fn-del','0','fn-x'].forEach(k=>{
+    if(k==='fn-del'){ const b=el('div','key fn','⌫'); b.onclick=()=>press('del'); kp.appendChild(b); return; }
+    if(k==='fn-x'){ const b=el('div','key fn',''); b.style.visibility='hidden'; kp.appendChild(b); return; }
+    const b=el('div','key',k); b.onclick=()=>press(k); kp.appendChild(b);
+  });
+  scene.appendChild(kp);
+  refresh();
+}
+
+function buildRIntro(scene,g){
+  scene.appendChild(el('p','r-eyebrow', g.occasion==='Custom'?g.customOccasion:g.occasion));
+  const ap = el('div','aperture');
+  ap.innerHTML = `<svg viewBox="0 0 220 220">${apertureSvg()}</svg><div class="beam"></div><div class="core">${(g.openingMessage||'Something special is waiting for you...')}</div>`;
+  scene.appendChild(ap);
+  const btn = el('button','btn','Open Your Surprise ✨'); btn.style.marginTop='10px';
+  btn.onclick = ()=>{
+    ap.classList.add('open');
+    burst({particleCount:130,spread:100});
+    beep(500,.15,'sine',.06);
+    if(g.music.dataUrl){
+      rAudio = new Audio(g.music.dataUrl); rAudio.loop=true; rAudio.volume=.55;
+      rAudio.play().catch(()=>{});
+    }
+    setTimeout(()=>rGo('HERO'), 1200);
+  };
+  scene.appendChild(btn);
+}
+
+function buildRHero(scene,g){
+  if(g.heroImage){
+    const img = el('img',null,''); img.src=g.heroImage;
+    img.style.width='min(320px,80vw)'; img.style.borderRadius='24px'; img.style.marginBottom='24px'; img.style.boxShadow='0 30px 60px -25px rgba(0,0,0,.5)';
+    scene.appendChild(img);
+  }
+  scene.appendChild(el('h1','r-headline', `For <span class="r-name">${g.recipientName||'you'}</span>`));
+  scene.appendChild(el('p','r-sub', g.openingMessage||''));
+  const btn = el('button','btn outline','Continue ▸'); btn.style.marginTop='26px';
+  btn.onclick = ()=>rGo('MEMORIES');
+  scene.appendChild(btn);
+}
+
+function buildRMemories(scene,g){
+  const mems = g.memories.length ? g.memories : [{image:'',title:'A memory',description:'Add photos in the builder to see them here.',date:'',location:''}];
+  if(state.recipient.memIdx>=mems.length) state.recipient.memIdx=0;
+  scene.appendChild(el('p','r-eyebrow','Some memories deserve to be remembered'));
+  const card = el('div','mem-card');
+  scene.appendChild(card);
+  function render(){
+    const m = mems[state.recipient.memIdx];
+    card.innerHTML = `<div class="frame">${m.image?`<img src="${m.image}">`:'<div style="height:340px;background:var(--card);"></div>'}</div>
+      <div class="info">
+        ${m.date||m.location ? `<div class="mdate">${[m.date,m.location].filter(Boolean).join(' · ')}</div>`:''}
+        <h3>${(m.title||'').replace(/</g,'&lt;')}</h3>
+        <p>${(m.description||'').replace(/</g,'&lt;')}</p>
+      </div>`;
+  }
+  render();
+  const nav = el('div','mem-nav');
+  const prev = el('div','nc','‹'); prev.onclick=()=>{ if(state.recipient.memIdx>0){ state.recipient.memIdx--; render(); dotsRender(); } };
+  const dots = el('div','mem-dots');
+  const next = el('div','nc','›'); next.onclick=()=>{ if(state.recipient.memIdx<mems.length-1){ state.recipient.memIdx++; render(); dotsRender(); } };
+  nav.appendChild(prev); nav.appendChild(dots); nav.appendChild(next);
+  scene.appendChild(nav);
+  function dotsRender(){ dots.innerHTML=''; mems.forEach((_,i)=>dots.appendChild(el('span', i===state.recipient.memIdx?'on':'',''))); }
+  dotsRender();
+  const cont = el('button','btn','Continue ▸'); cont.style.marginTop='24px';
+  cont.onclick = ()=>rGo('SURPRISES');
+  scene.appendChild(cont);
+}
+
+function buildRSurprises(scene,g){
+  const reasons = (g.surprises.reasons||[]).filter(r=>r && r.trim());
+  scene.appendChild(el('p','r-eyebrow','A few things I never said out loud'));
+  if(reasons.length){
+    const stack = el('div','reason-stack');
+    const card = el('div','reason-card');
+    card.innerHTML = `<div class="lab">Reason ${state.recipient.reasonIdx+1} of ${reasons.length}</div><div class="txt show">${reasons[state.recipient.reasonIdx]}</div><div class="tap">tap to continue →</div>`;
+    stack.appendChild(card);
+    const prog = el('div','reason-progress');
+    reasons.forEach((_,i)=>prog.appendChild(el('span', i<=state.recipient.reasonIdx?'on':'','')));
+    stack.appendChild(prog);
+    card.onclick = ()=>{
+      if(state.recipient.reasonIdx<reasons.length-1){
+        state.recipient.reasonIdx++;
+        card.querySelector('.txt').classList.remove('show');
+        setTimeout(()=>{
+          card.querySelector('.lab').textContent = `Reason ${state.recipient.reasonIdx+1} of ${reasons.length}`;
+          card.querySelector('.txt').textContent = reasons[state.recipient.reasonIdx];
+          card.querySelector('.txt').classList.add('show');
+          prog.children[state.recipient.reasonIdx].classList.add('on');
+        },250);
+        beep(500,.06,'sine',.04);
+      } else {
+        moveToMystery();
+      }
+    };
+    scene.appendChild(stack);
+  } else {
+    moveToMystery();
+  }
+  function moveToMystery(){
+    if(scene.querySelector('.reveal-mystery')) return;
+    if(g.surprises.mystery && g.surprises.mystery.answer){
+      const my = el('div','reveal-mystery');
+      my.innerHTML = `<div class="q">${g.surprises.mystery.question||'Tap if you dare 👀'}</div><div class="a">${g.surprises.mystery.answer}</div>`;
+      my.onclick = ()=>{ if(!my.classList.contains('open')){ my.classList.add('open'); burst({particleCount:80}); } };
+      scene.appendChild(my);
+    }
+    const cont = el('button','btn','Continue ▸'); cont.style.marginTop='22px';
+    cont.onclick = ()=> g.scratchCard.enabled ? rGo('SCRATCH') : rGo('LETTER');
+    scene.appendChild(cont);
+  }
+}
+
+function buildRScratch(scene,g){
+  const s = g.scratchCard;
+  state.recipient.scratchDone=false;
+  scene.appendChild(el('p','r-eyebrow','One more thing'));
+  scene.appendChild(el('h2','r-headline', s.title||'There\'s a little surprise waiting for you...'));
+  const wrap = el('div','scratch-wrap');
+  const under = el('div','scratch-under');
+  under.innerHTML = s.specialGiftImage ? `<img src="${s.specialGiftImage}">` : `<div class="noimg">🎁</div>`;
+  wrap.appendChild(under);
+  const canvas = document.createElement('canvas'); canvas.className='scratch-canvas';
+  wrap.appendChild(canvas);
+  const hint = el('div','scratch-hint', s.instruction||'Scratch to reveal ✨');
+  wrap.appendChild(hint);
+  scene.appendChild(wrap);
+  const cont = el('button','btn','Continue ▸'); cont.style.marginTop='22px'; cont.style.display='none';
+  const revealMsg = el('p','r-sub', s.revealedMessage||''); revealMsg.style.display='none'; revealMsg.style.marginTop='16px';
+  scene.appendChild(revealMsg);
+  scene.appendChild(cont);
+
+  const dpr = window.devicePixelRatio||1;
+  const ctx = canvas.getContext('2d');
+  const themeColors = { silver:['#E8ECF1','#C7CDD6'], gold:['#F0DCA6','#C9A15A'], rose:['#F7D8E1','#E8B7C4'] };
+  function size(){
+    const r = wrap.getBoundingClientRect();
+    const w=r.width||290, h=r.height||290;
+    canvas.width=w*dpr; canvas.height=h*dpr;
+    canvas.style.width=w+'px'; canvas.style.height=h+'px';
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    const cols = themeColors[s.theme]||themeColors.gold;
+    const grad = ctx.createLinearGradient(0,0,w,h);
+    grad.addColorStop(0,cols[0]); grad.addColorStop(1,cols[1]);
+    ctx.fillStyle=grad; ctx.fillRect(0,0,w,h);
+  }
+  size(); requestAnimationFrame(size);
+  let drawing=false;
+  function scratchAt(x,y){ ctx.globalCompositeOperation='destination-out'; ctx.beginPath(); ctx.arc(x,y,24,0,Math.PI*2); ctx.fill(); }
+  function pos(e){ const r=canvas.getBoundingClientRect(); const t=e.touches?e.touches[0]:e; return {x:t.clientX-r.left,y:t.clientY-r.top}; }
+  function check(){
+    if(state.recipient.scratchDone) return;
+    const r=wrap.getBoundingClientRect(); const w=Math.max(1,Math.floor(r.width)), h=Math.max(1,Math.floor(r.height));
+    const img = ctx.getImageData(0,0,w,h).data;
+    let clear=0, n=0;
+    for(let i=3;i<img.length;i+=4*19){ n++; if(img[i]<80) clear++; }
+    if(n && clear/n>0.55){
+      state.recipient.scratchDone=true;
+      canvas.style.transition='opacity .5s ease'; canvas.style.opacity='0';
+      hint.style.opacity='0';
+      burst({particleCount:150,spread:100});
+      beep(700,.2,'sine',.06);
+      cont.style.display='inline-block';
+      if(s.revealedMessage) revealMsg.style.display='block';
+    }
+  }
+  const start=e=>{ drawing=true; hint.style.opacity='0'; const p=pos(e); scratchAt(p.x,p.y); };
+  const move=e=>{ if(!drawing) return; e.preventDefault(); const p=pos(e); scratchAt(p.x,p.y); check(); };
+  const end=()=>{ drawing=false; check(); };
+  canvas.addEventListener('mousedown',start); canvas.addEventListener('mousemove',move); window.addEventListener('mouseup',end);
+  canvas.addEventListener('touchstart',start,{passive:true}); canvas.addEventListener('touchmove',move,{passive:false}); canvas.addEventListener('touchend',end);
+  cont.onclick = ()=>rGo('LETTER');
+}
+
+function buildRLetter(scene,g){
+  const L = g.letter;
+  const full = `${L.title?L.title+'\n\n':''}${L.body||''}${L.signature?'\n\n'+L.signature:''}`;
+  scene.appendChild(el('p','r-eyebrow','A letter'));
+  const paper = el('div','paper2');
+  paper.innerHTML = `<div class="ltitle">To ${g.recipientName||'you'}</div>`;
+  const textEl = el('div','letter-text','');
+  const caret = el('span','caret','');
+  textEl.appendChild(caret);
+  paper.appendChild(textEl);
+  scene.appendChild(paper);
+  const controls = el('div',''); controls.style.marginTop='18px'; controls.style.display='flex'; controls.style.gap='10px';
+  const skip = el('button','btn outline sm','Skip ▸');
+  const cont = el('button','btn sm','Continue ▸'); cont.style.display='none';
+  controls.appendChild(skip); controls.appendChild(cont);
+  scene.appendChild(controls);
+  let i=0, timer=null, done=false;
+  function tick(){
+    if(i>=full.length){ finish(); return; }
+    caret.insertAdjacentText('beforebegin', full[i]); i++;
+    if(i%16===0) beep(320,.02,'sine',.006);
+    timer=setTimeout(tick,22);
+  }
+  function finish(){ if(done) return; done=true; clearTimeout(timer); caret.remove(); skip.style.display='none'; cont.style.display='inline-block'; }
+  tick();
+  skip.onclick = ()=>{ clearTimeout(timer); textEl.innerHTML=full.replace(/\n/g,'<br>'); finish(); };
+  cont.onclick = ()=>{ burst({particleCount:160,spread:130}); rGo('FINAL'); };
+}
+
+function buildRFinal(scene,g){
+  burst({particleCount:150,spread:140});
+  scene.appendChild(el('p','r-eyebrow','That\'s all for now'));
+  scene.appendChild(el('h1','r-headline', g.recipientName||''));
+  scene.appendChild(el('p','r-sub', `Made with love by ${g.creatorName||'someone who cares'}`));
+  const btn = el('button','btn outline','Replay ↻'); btn.style.marginTop='24px';
+  btn.onclick = ()=>{ state.recipient.memIdx=0; state.recipient.reasonIdx=0; state.recipient.pinEntry=''; state.recipient.scratchDone=false; if(rAudio){ rAudio.pause(); rAudio=null; } rGo(g.pin.enabled?'PIN':'INTRO'); };
+  scene.appendChild(btn);
+}
+
+function buildRPlayer(g){
+  const p = el('div','player glass');
+  const img = el('img','cover',''); if(g.music.cover) img.src=g.music.cover; p.appendChild(img);
+  const meta = el('div','meta');
+  meta.innerHTML = `<div class="ttl">${g.music.title||'Our song'}</div>`;
+  const bar = el('div','bar'); const fill=el('i',''); bar.appendChild(fill); meta.appendChild(bar);
+  p.appendChild(meta);
+  const btn = el('button','','⏸'); p.appendChild(btn);
+  let playing = !!rAudio && !rAudio.paused;
+  btn.textContent = playing?'⏸':'▶';
+  btn.onclick = ()=>{
+    if(!rAudio){ rAudio=new Audio(g.music.dataUrl); rAudio.loop=true; rAudio.volume=.55; }
+    if(rAudio.paused){ rAudio.play(); btn.textContent='⏸'; } else { rAudio.pause(); btn.textContent='▶'; }
+  };
+  if(rAudio){
+    rAudio.ontimeupdate = ()=>{ if(rAudio.duration) fill.style.width = (rAudio.currentTime/rAudio.duration*100)+'%'; };
+  }
+  return p;
+}
+
+function renderNotFound(){
+  app.appendChild(nav());
+  const w = el('div','notfound');
+  w.innerHTML = `<h2>This gift couldn't be found</h2><p style="margin-top:10px;">The link may be incomplete, or it hasn't been published yet.</p>`;
+  app.appendChild(w);
+}
+
+/* ================================================================
+   BOOT
+   ================================================================ */
+async function boot(){
+  window.addEventListener('error', e=>{
+    if(app && !app.innerHTML){ app.innerHTML = '<div class="notfound"><h2>Something went wrong loading this page.</h2><p style="margin-top:10px;">Try refreshing. If it keeps happening, the link may be damaged or incomplete.</p></div>'; }
+  });
+  try{
+    const shared = decodeShareUrl();
+    if(shared){
+      go('recipient',{recipient:{gift:shared, scene: (shared.pin&&shared.pin.enabled)?'PIN':'INTRO', memIdx:0, reasonIdx:0, pinEntry:'', scratchDone:false}});
+      return;
+    }
+    const params = new URLSearchParams(location.search);
+    const remoteId = params.get('g');
+    if(remoteId){
+      const g = await loadGiftRemote(remoteId);
+      if(g){ go('recipient',{recipient:{gift:g, scene:(g.pin&&g.pin.enabled)?'PIN':'INTRO', memIdx:0, reasonIdx:0, pinEntry:'', scratchDone:false}}); return; }
+      go('notfound'); return;
+    }
+    const giftId = params.get('gift');
+    if(giftId){
+      const g = await loadGiftShared(giftId);
+      if(g){ go('recipient',{recipient:{gift:g,scene: g.pin.enabled?'PIN':'INTRO',memIdx:0,reasonIdx:0,pinEntry:'',scratchDone:false}}); return; }
+      go('notfound'); return;
+    }
+    go('home');
+  }catch(e){
+    go('home');
+  }
+}
+boot();
+</script>
+</body>
+</html>
